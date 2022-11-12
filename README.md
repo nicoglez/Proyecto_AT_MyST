@@ -1,4 +1,4 @@
-# <font color = 'navy'> Laboratorio 4. Microestructura de Mercado <font color = 'black'>
+# <font color = 'navy'> Proyecto. Análisis Técnico <font color = 'black'>
     
 El objetivo de este repositorio es mostrar el desarrollo organizado del proyecto de Análisis Técnico de la materia de *microestructuras y sistemas de trading*.
     
