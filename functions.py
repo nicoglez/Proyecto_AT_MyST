@@ -54,6 +54,7 @@ def ao(data, period1, period2):
     ao_df = pd.DataFrame(ao).rename(columns = {'close':'ao'})
     return ao_df
 
+# Funcion para bandas de bollinger
 def bollinger(data):
     indicator_bb = BollingerBands(close=data['close'], window=20, window_dev=2)
     bolldata=pd.DataFrame()
@@ -71,6 +72,7 @@ def bollinger(data):
     warnings.filterwarnings('ignore')
     return bolldata,fig
 
+# Funcion sthocastic oscillator
 def stochastic(data):
     indicator_stoc = StochasticOscillator(high=data['high'], low=data['low'], close=data['close'])
     sdata=pd.DataFrame()
@@ -85,6 +87,7 @@ def stochastic(data):
     fig.update_layout(title = "StochasticOscillator",xaxis_title='Time')
     return sdata,fig
 
+# funcion de decision de estudios tecnicos
 def est_tec(price,bol,st):
     price=price.reset_index(drop=True)
     bol=bol.reset_index(drop=True)
@@ -109,3 +112,44 @@ def est_tec(price,bol,st):
         else:
             price.loc[i,'decision']=0
     return price
+
+# Funcion para simular
+def trading_simulation(data: pd.DataFrame, initial_capital: float, max_loss: float,
+                       volume: int, stop_loss: float, take_profit: float):
+    # Calculo de rendimientos
+    rends = data["close"].pct_change().dropna()
+    # Estado de la inversion
+    state = 0  # no invertido
+    # Capital Inicial en lista
+    capital = [initial_capital]
+    # Valor de entrada a inversion, variable de apoyo
+    entry = 0
+
+    # Simulacion
+    for obs in range(len(data)):
+        # Estado de inversion
+        if data["decision"][obs] == 1 and state == 0:  # Si nuestro generador de señal es 1, entramos
+            state = 1
+            entry = capital[-1] * volume
+        elif state == 1 and data["decision"][obs] == -1:  # Si nuestro generador es -1, y estamos invertidos, vendemos
+            state = 0
+        elif capital[-1] - entry < max_loss:  # Si perdemos mas de nuestra perdida maxima desinvertimos
+            state = 0
+        else:  # Si nuestro generador no nos dice nada no hacemos nada
+            state = state
+
+        # Actualizacion de capital si invertimos o si no
+        if state:  # Si invertimos, entramos en t y en t+1 tenemos rendimiento de n activos
+            capital.append(capital[obs] * (1 + rends[obs + 1] * volume))
+        else:  # Si no invertimos, nuestro capital en tiempo t es igual al de t-1
+            capital.append(capital[obs])
+
+        # Cerrar posicion si pasamos STOP LOSS o TAKE PROFIT
+        if stop_loss > data["close"][obs]:
+            state = 0
+        elif take_profit < data["close"][obs]:
+            state = 0
+
+    data["evolucion_capital"] = capital[:-1]
+    data["evolucion_rends"] = pd.DataFrame(capital[:-1]).pct_change()
+    return data  # capital[:-1]
