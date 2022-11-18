@@ -153,3 +153,5 @@ def trading_simulation(data: pd.DataFrame, initial_capital: float, max_loss: flo
     data["evolucion_capital"] = capital[:-1]
     data["evolucion_rends"] = pd.DataFrame(capital[:-1]).pct_change()
     return data  # capital[:-1]
+
+Sharpe_Ratio = lambda R, rf, sigma: -(R - rf)/sigma
