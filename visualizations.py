@@ -3,6 +3,7 @@ import warnings
 import plotly.graph_objects as go
 import functions as fn
 import plotly.express as px
+import pandas as pd
 
 #extra
 def plot_ao(data):
