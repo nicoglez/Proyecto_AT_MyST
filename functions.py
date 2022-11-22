@@ -9,6 +9,7 @@ from ta.momentum import StochasticOscillator
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import warnings
+import pyswarms as ps
 
 
 # Función para bajar datos de MT5
@@ -154,4 +155,55 @@ def trading_simulation(data: pd.DataFrame, initial_capital: float, max_loss: flo
     data["evolucion_rends"] = pd.DataFrame(capital[:-1]).pct_change()
     return data  # capital[:-1]
 
+# Función radio de Sharpe
 Sharpe_Ratio = lambda R, rf, sigma: -(R - rf)/sigma
+
+# Función optimización PSO
+
+def PSO_optimization(data: pd.DataFrame, min_volume: int, max_volume: int, min_SL: float,
+                     max_SL: float, min_TP: float, max_TP: float):
+    # Definir opciones
+    options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
+    
+    # Definir bounds en array
+    x_max = np.array([max_SL, max_TP, max_volume])
+    x_min = np.array([min_SL, min_TP, min_volume])
+    bounds = (x_min, x_max)
+    
+    # Llamar instancia de PSO
+    optimizer = ps.single.GlobalBestPSO(n_particles=20, dimensions=3, options=options, bounds=bounds)
+    
+    #Funcion Heuristica que optimiza sharpe dada la simulacion
+    def f(x): 
+        res = []
+
+        for i in range(len(x)):
+            stop_loss = x[i][0]
+            take_profit = x[i][1]
+            volume = x[i][2]
+            res.append(Sharpe_Ratio(R=trading_simulation(data=data,
+                                                         initial_capital=100000, 
+                                                         max_loss=1000, 
+                                                         stop_loss=stop_loss, 
+                                                         take_profit=take_profit,
+                                                         volume=volume)["evolucion_rends"].mean(),
+                                    rf=0.05, 
+                                    sigma=trading_simulation(data=data,
+                                                             initial_capital=100000, 
+                                                             max_loss=1000, 
+                                                             take_profit=take_profit,
+                                                             stop_loss=stop_loss, 
+                                                             volume=volume)["evolucion_rends"].std()))
+
+        return np.array(res).flatten()
+    
+    # Realizar optimización
+    cost, pos = optimizer.optimize(f, iters=50)
+    
+    # Definir variables optimizadas 
+    SL, TP, Volume = pos[0], pos[1], round(pos[2], 0)
+    
+    # Historia de convergencia
+    history = optimizer.cost_history
+    
+    return {"Stop_Loss": SL, "Take_Profit": TP, "Volume": Volume, "Ratio_Sharpe": cost, "History": history}
