@@ -21,7 +21,7 @@ def plot_ao(data):
 
 # Funcion para plottear convergencia
 def convergence_chart(data: dict, target_y: str):
-    fig = px.line(dic, y = target_y, title="Convengencia Algoritmo de Optimizacion",
+    fig = px.line(data, y = target_y, title="Convengencia Algoritmo de Optimizacion",
               height=450, width=1000)
     fig.update_xaxes(title="Itter")
     fig.update_yaxes(title="Value")
