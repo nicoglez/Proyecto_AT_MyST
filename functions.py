@@ -153,6 +153,8 @@ def trading_simulation(data: pd.DataFrame, initial_capital: float, max_loss: flo
 
     data["evolucion_capital"] = capital[:-1]
     data["evolucion_rends"] = pd.DataFrame(capital[:-1]).pct_change()
+    data["profit_acum"] = data["evolucion_capital"] - initial_capital
+    data["rend_acum"] = data["evolucion_capital"]/initial_capital - 1
     return data  # capital[:-1]
 
 # Función radio de Sharpe
