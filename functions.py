@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import warnings
 import pyswarms as ps
+import pandas_datareader.data as web
 
 
 # Función para bajar datos de MT5
@@ -209,3 +210,40 @@ def PSO_optimization(data: pd.DataFrame, min_volume: int, max_volume: int, min_S
     history = optimizer.cost_history
     
     return {"Stop_Loss": SL, "Take_Profit": TP, "Volume": Volume, "Ratio_Sharpe": cost, "History": history}
+
+    # Función para descargar precio o precios de cierre
+def get_adj_closes(tickers: str, start_date: str = None, end_date: str = None, freq: str = 'd'):
+    # Bajar solo un dato si end_date no se da
+    end_date = end_date if end_date else start_date or None
+    # Bajar cierre de precio ajustado
+    closes = web.YahooDailyReader(symbols=tickers, start=start_date, end=end_date, interval=freq).read()['Adj Close']
+    # Poner indice de forma ascendente
+    closes.sort_index(inplace=True)
+    return closes
+
+# Funcion para obtener metricas de nuestra estrategia
+def estadisticas_mad(evolucion):
+    
+    # Bajar datos del SP500
+    SP = get_adj_closes('^GSPC', evolucion.iloc[0, 0], evolucion.iloc[-1, 0])
+    SP_rends =(SP/SP.shift()-1).dropna().values
+    
+    # Metricas del portafolio
+    mean_portafolio = float((pd.DataFrame([i for i in evolucion["rend_acum"] if i!=0])).dropna().mean())
+    rf = .03 # Asumimos rf de 3%
+    sdport = float((pd.DataFrame([i for i in evolucion["rend_acum"] if i!=0])).dropna().std())
+    beta = np.cov(SP_rends, evolucion["rend_acum"][:len(SP_rends)])[0][0]/np.var(SP_rends)
+
+    # Calcular Sharpe 
+    sharpe = round((mean_portafolio - rf)/sdport, 5)
+    # Calcular Treynor
+    treynor = round((mean_portafolio - rf)/beta, 5)
+    # Calcular Alpha de Jensen
+    jensen = round(mean_portafolio - (rf + beta*(SP_rends.mean() - rf)), 5)
+    
+    summary = pd.DataFrame()
+    summary["Sharpe_Ratio"] = [sharpe]
+    summary["Treynor_Ratio"] = [treynor]
+    summary["Jensen_Alpha"] = [jensen]
+
+    return summary

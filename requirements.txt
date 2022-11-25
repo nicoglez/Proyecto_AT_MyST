@@ -8,3 +8,4 @@ datetime==4.5
 MetaTrader5
 ta
 pyswarms
+pandas_datareader
